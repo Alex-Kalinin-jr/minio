@@ -1,4 +1,4 @@
-version: '3.4'
+version: '3.7'
 services:
   mad_db_service:
     build: ./mad_db_service
@@ -43,3 +43,24 @@ services:
     restart: always
     ports:
       - 8083:8080
+
+  mad_minio:
+    image: minio/minio:latest
+    container_name: mad_minio_service
+    command: server --console-address ":9001" /data/
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: mad
+      MINIO_ROOT_PASSWORD: madmadmad
+    restart: always
+    volumes:
+      - minio-storage:/data
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+    #   interval: 30s
+    #   timeout: 20s
+    #   retries: 3
+volumes:
+  minio-storage:

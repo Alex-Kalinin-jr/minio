@@ -6,13 +6,17 @@ from sqlalchemy.orm import joinedload
 
 from db.database import get_session, AsyncSession
 from db.models import *
-
+from services.minio_service import MinioInstance
 
 router = APIRouter(prefix="/memes")
 
-# @router.get("/getall", status_code=200)
-# async def response_hello():
-#     return {"hello" : "world"}
+minio = MinioInstance("http://mad_minio_service:9000", "mad", "madmadmad")
+
+
+@router.get("/", status_code=200)
+async def response_hello():
+    minio.mock("11.txt", "11.txt", "tata")
+    return {"hello" : "world"}
 
 
 # @router.get("/categories", status_code=200, response_model=List[Categories])
