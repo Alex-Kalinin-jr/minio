@@ -15,12 +15,11 @@ class MinioInstance:
 
 
     def mock(self, source: str, dest: str, bucket_name: str):
-        buckets = self.client.list_buckets()
-        # try:
-        #     if not self.client.bucket_exists(bucket_name):
-        #         logger.info(f"Create bucket {bucket_name}")
-        #         self.client.make_bucket(bucket_name)
-        #     self.client.fput_object(bucket_name, dest, source)
-        # except S3Error as e:
-        #     logger.error("mock method error: %s", e)
+        try:
+            if not self.client.bucket_exists(bucket_name):
+                logger.info(f"Create bucket {bucket_name}")
+                self.client.make_bucket(bucket_name)
+            self.client.fput_object(bucket_name, dest, source)
+        except S3Error as e:
+            logger.error("mock method error: %s", e)
 

@@ -10,15 +10,34 @@ from services.minio_service import MinioInstance
 
 router = APIRouter(prefix="/memes")
 
-minio = MinioInstance("172.25.0.3:9000",
+minio = MinioInstance("minio:9000",
                       "cIMgklpimVsquh6gYVo2",
                       "02HyWGyuwCRGH8KA2JuTN4yL2bPhSJIvHvQ5zWPN")
 
 
 @router.get("/", status_code=200)
-async def response_hello():
-    minio.mock("11.txt", "11.txt", "tata")
+async def get_all_memes_records(session: AsyncSession=Depends(get_session)):
+    memes_data = await session.exec(select(Memes))
+    memes = memes_data.all()
+    return memes
+
+
+@router.post("/", status_code=200)
+async def response_mock(mem: Memes, session: AsyncSession=Depends(get_session)):
+    session.add(mem)
+    await session.commit()
+    minio.mock(mem.url, mem.name, "tata")
     return {"hello" : "world"}
+
+
+@router.get("/{id}")
+async def get_mem_by_id(*, session: AsyncSession=Depends(get_session), id: int):
+    meme = await session.get(Memes, id)
+
+    if not meme:
+        raise HTTPException(status_code=404, detail="Meme not found")
+
+    return meme
 
 
 # @router.get("/categories", status_code=200, response_model=List[Categories])
