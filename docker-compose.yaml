@@ -12,10 +12,11 @@ services:
     ports:
       - 8084:8000
 
+
   mad_postgres_service:
     image: postgres:16
     container_name: mad_postgres_service
-    env_file: 
+    env_file:
       - .env
     command:
       - "postgres"
@@ -37,6 +38,7 @@ services:
     ports:
       - 5433:5432
 
+
   mad_adminer:
     image: adminer
     container_name: mad_adminer_service
@@ -44,9 +46,10 @@ services:
     ports:
       - 8083:8080
 
+
   mad_minio:
     image: minio/minio:latest
-    container_name: mad_minio_service
+    hostname: "minio"
     command: server --console-address ":9001" /data/
     ports:
       - "9000:9000"
@@ -57,10 +60,7 @@ services:
     restart: always
     volumes:
       - minio-storage:/data
-    # healthcheck:
-    #   test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-    #   interval: 30s
-    #   timeout: 20s
-    #   retries: 3
+
+
 volumes:
   minio-storage:

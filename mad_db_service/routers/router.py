@@ -10,7 +10,9 @@ from services.minio_service import MinioInstance
 
 router = APIRouter(prefix="/memes")
 
-minio = MinioInstance("http://mad_minio_service:9000", "mad", "madmadmad")
+minio = MinioInstance("172.25.0.3:9000",
+                      "cIMgklpimVsquh6gYVo2",
+                      "02HyWGyuwCRGH8KA2JuTN4yL2bPhSJIvHvQ5zWPN")
 
 
 @router.get("/", status_code=200)
@@ -59,7 +61,7 @@ async def response_hello():
 
 #     if not result:
 #         raise HTTPException(status_code=404, detail="Category not found")
-    
+
 #     return result.one()
 
 
