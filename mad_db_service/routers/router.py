@@ -12,8 +12,8 @@ from urllib.request import urlopen
 router = APIRouter(prefix="/memes")
 
 minio = MinioInstance("minio:9000",
-                      "v2zERzfgEoiWANARudd6",
-                      "uegYnAmLyEmnTy37CfsTMXAlO5GuEIMi0xPlJQoP")
+                      "hBoAreTWrFZnuefmj5bH",
+                      "D0LT1z9MJgf8HaRXMJmSiIvSD31cm4R8R33nCQN5")
 
 
 @router.get("/", status_code=200)
@@ -35,18 +35,15 @@ async def post_from_url(mem: Memes, session: AsyncSession=Depends(get_session)):
         await session.commit()
         return {"operation" : "success"}
     except Exception as e:
-        raise HTTPException(status_code=404, detail=f"{e}") 
+        raise HTTPException(status_code=404, detail=f"{e}")
 
 
 @router.get("/{id}", responses = {200: {"content": {"image/png": {}}}}, response_class=Response)
 async def get_mem_by_id(*, session: AsyncSession=Depends(get_session), id: int):
-    print("\n1\n")
     meme = await session.get(Memes, id)
     if not meme:
         raise HTTPException(status_code=404, detail="Meme not found")
-    print("\n2\n")
-    image_bytes = minio.get_by_name(meme.name)
-    print("\n3\n")
+    image_bytes = minio.get_by_name(bucket="tata", name=meme.name)
     return Response(content=image_bytes, media_type="image/png")
 
 

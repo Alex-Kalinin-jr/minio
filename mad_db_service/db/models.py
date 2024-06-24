@@ -7,5 +7,3 @@ class Memes(SQLModel, table=True):
     name: str = Field(...)
     description: Optional[str] = Field(default="описание отсутствует")
     url: str = Field(...)
-
-

@@ -19,11 +19,16 @@ class MinioInstance:
             if not self.client.bucket_exists(bucket_name):
                 logger.info(f"Create bucket {bucket_name}")
                 self.client.make_bucket(bucket_name)
-            result = self.client.put_object(bucket_name = bucket_name, 
-                                            object_name=dest, 
-                                            data=source, 
-                                            length=-1, 
-                                            part_size=10*1024*1024)
+
+            content_type =source.info().get("Content-Type")
+            print(f"this is the content type {content_type}")
+
+            result = self.client.put_object(bucket_name = bucket_name,
+                                            object_name=dest,
+                                            data=source,
+                                            length=-1,
+                                            part_size=10*1024*1024,
+                                            )
             return result
         except S3Error as e:
             logger.error("mock method error: %s", e)

@@ -10,7 +10,7 @@ services:
     volumes:
       - ./mad_db_service:/app
     ports:
-      - 8084:8000
+      - 8081:8000
 
 
   mad_postgres_service:
@@ -36,7 +36,7 @@ services:
       - "statement_timeout=30s"
     restart: unless-stopped
     ports:
-      - 5433:5432
+      - 5432:5432
 
 
   mad_adminer:
