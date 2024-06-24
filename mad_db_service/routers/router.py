@@ -3,7 +3,7 @@ import base64
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlmodel import select
-from sqlalchemy.orm import joinedload
+from sqlalchemy import func
 
 from db.database import get_session, AsyncSession
 from db.models import *
@@ -19,9 +19,18 @@ minio = MinioInstance("minio:9000",
 
 
 @router.get("/", status_code=200)
-async def get_all_memes_records(session: AsyncSession=Depends(get_session)):
-    memes_data = await session.exec(select(Memes))
+async def get_all_memes_records(
+    session: AsyncSession = Depends(get_session),
+    page: int = 1,
+    per_page: int = 10,
+):
+    offset = (page - 1) * per_page
+    memes_data = await session.exec(select(Memes).limit(per_page).offset(offset))
     memes = memes_data.all()
+    print(len(memes))
+    total_count = await session.exec(select(func.count(Memes.id)))
+    total_pages = (total_count.one() + per_page - 1) // per_page
+
     html_content = "<html><body>"
     for meme in memes:
         image_bytes = minio.get_by_name(bucket="tata", name=meme.name)
@@ -29,7 +38,13 @@ async def get_all_memes_records(session: AsyncSession=Depends(get_session)):
         html_content += f'<img src="data:image/png;base64,{base64_image}" alt="{meme.name}" width="300"><br>'
     html_content += "</body></html>"
 
-    return HTMLResponse(content=html_content)
+    return HTMLResponse(
+        content=html_content,
+        headers={
+            "X-Total-Count": str(total_count),
+            "X-Total-Pages": str(total_pages),
+        },
+    )
 
 
 @router.post("/", status_code=200)
