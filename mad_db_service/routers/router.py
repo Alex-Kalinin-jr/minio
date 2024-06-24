@@ -1,4 +1,5 @@
 import json
+import base64
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlmodel import select
@@ -8,6 +9,7 @@ from db.database import get_session, AsyncSession
 from db.models import *
 from services.minio_service import MinioInstance
 from urllib.request import urlopen
+from starlette.responses import HTMLResponse
 
 router = APIRouter(prefix="/memes")
 
@@ -20,7 +22,14 @@ minio = MinioInstance("minio:9000",
 async def get_all_memes_records(session: AsyncSession=Depends(get_session)):
     memes_data = await session.exec(select(Memes))
     memes = memes_data.all()
-    return memes
+    html_content = "<html><body>"
+    for meme in memes:
+        image_bytes = minio.get_by_name(bucket="tata", name=meme.name)
+        base64_image = base64.b64encode(image_bytes).decode("utf-8")
+        html_content += f'<img src="data:image/png;base64,{base64_image}" alt="{meme.name}" width="300"><br>'
+    html_content += "</body></html>"
+
+    return HTMLResponse(content=html_content)
 
 
 @router.post("/", status_code=200)
@@ -45,9 +54,6 @@ async def get_mem_by_id(*, session: AsyncSession=Depends(get_session), id: int):
         raise HTTPException(status_code=404, detail="Meme not found")
     image_bytes = minio.get_by_name(bucket="tata", name=meme.name)
     return Response(content=image_bytes, media_type="image/png")
-
-
-
 
 
 
