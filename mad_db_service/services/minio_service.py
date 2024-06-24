@@ -14,12 +14,25 @@ class MinioInstance:
         self.client = Minio(url, access_key=acc_key, secret_key=sec_key, secure=False)
 
 
-    def mock(self, source: str, dest: str, bucket_name: str):
+    def put_from_url(self, source: str, dest: str, bucket_name: str):
         try:
             if not self.client.bucket_exists(bucket_name):
                 logger.info(f"Create bucket {bucket_name}")
                 self.client.make_bucket(bucket_name)
-            self.client.fput_object(bucket_name, dest, source)
+            result = self.client.put_object(bucket_name = bucket_name, 
+                                            object_name=dest, 
+                                            data=source, 
+                                            length=-1, 
+                                            part_size=10*1024*1024)
+            return result
         except S3Error as e:
             logger.error("mock method error: %s", e)
 
+
+    def get_by_name(self, bucket: str, name: str):
+        try:
+            response = self.client.get_object(bucket_name=bucket, object_name=name)
+            return response.data
+        finally:
+            response.close()
+            response.release_conn()

@@ -9,11 +9,11 @@ from config import DB_URL
 from .models import *
 
 
-logger = logging.getLogger(__name__)
-formatter = logging.Formatter('%(levelname)s - %(message)s')
-handler = logging.FileHandler('logs/db_log.log')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+# logger = logging.getLogger(__name__)
+# formatter = logging.Formatter('%(levelname)s - %(message)s')
+# handler = logging.FileHandler('logs/db_log.log')
+# handler.setFormatter(formatter)
+# logger.addHandler(handler)
 
 engine = create_async_engine(DB_URL, echo=True, future=True)
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
