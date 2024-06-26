@@ -1,5 +1,6 @@
 import json
 import base64
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlmodel import select
@@ -10,6 +11,12 @@ from db.models import *
 from services.minio_service import MinioInstance
 from urllib.request import urlopen
 from starlette.responses import HTMLResponse
+
+
+logger = logging.getLogger(__name__)
+handler = logging.FileHandler("logs/router_log.log")
+handler.setFormatter(logging.Formatter("%(levelname)s - %(asctime)s - %(lineno)s - %(message)s"))
+logger.addHandler(handler)
 
 router = APIRouter(prefix="/memes")
 
@@ -27,7 +34,6 @@ async def get_all_memes_records(
     offset = (page - 1) * per_page
     memes_data = await session.exec(select(Memes).limit(per_page).offset(offset))
     memes = memes_data.all()
-    print(len(memes))
     total_count = await session.exec(select(func.count(Memes.id)))
     total_pages = (total_count.one() + per_page - 1) // per_page
 
@@ -53,12 +59,13 @@ async def post_from_url(mem: Memes, session: AsyncSession=Depends(get_session)):
         data = urlopen(mem.url)
 
         result = minio.put_from_url(data, mem.name, "tata")
-        print(f"created {result.object_name} object; etag: {result.etag}, version-id: {result.version_id}")
+        logger.info(f"created {result.object_name} object; etag: {result.etag}, version-id: {result.version_id}")
 
         session.add(mem)
         await session.commit()
         return {"operation" : "success"}
     except Exception as e:
+        logger.error(f"post_from_url method - error: {e}")
         raise HTTPException(status_code=404, detail=f"{e}")
 
 
@@ -66,78 +73,32 @@ async def post_from_url(mem: Memes, session: AsyncSession=Depends(get_session)):
 async def get_mem_by_id(*, session: AsyncSession=Depends(get_session), id: int):
     meme = await session.get(Memes, id)
     if not meme:
+        logger.info(f"get_mem_by_id - meme with id {id} not found")
         raise HTTPException(status_code=404, detail="Meme not found")
     image_bytes = minio.get_by_name(bucket="tata", name=meme.name)
     return Response(content=image_bytes, media_type="image/png")
 
 
-
-# @router.get("/categories", status_code=200, response_model=List[Categories])
-# async def get_categories(*, session: AsyncSession=Depends(get_session)):
-#     categories = await session.exec(select(Categories).distinct())
-
-#     if not categories:
-#         raise HTTPException(status_code=404, detail="Answers not found")
-
-#     return categories.all()
-
-
-# @router.get("/category/{category}", status_code=200, response_model=Categories)
-# async def get_category_by_name(*, session: AsyncSession=Depends(get_session), category: str):
-#     category = await session.exec(select(Categories).where(Categories.name == category).distinct())
-
-#     if not category:
-#         raise HTTPException(status_code=404, detail="Category not found")
-
-#     return category.one()
+@router.put("/{id}", status_code=200)
+async def update_mem_by_id(*, session: AsyncSession=Depends(get_session), id: int, mem: Memes):
+    existing_mem = await session.get(Memes, id)
+    if not existing_mem:
+        raise HTTPException(status_code=404, detail="Meme not found")
+    if mem.url != existing_mem.url:
+        existing_mem.url = mem.url
+        minio.replace_by_name(bucket="tata", name=mem.name, url=mem.url)
+    existing_mem.name = mem.name
+    existing_mem.description = mem.description
+    await session.commit()
+    return {"operation" : "success"}
 
 
-# @router.get("/category_data/{category}", status_code=200, response_model=List[Positions])
-# async def get_positions_by_category(*, session: AsyncSession=Depends(get_session), category: str):
-#     positions = await session.exec(
-#         select(Positions)
-#         .join(Positions.category)
-#         .where(Categories.name == category)
-#     )
-
-#     if not positions:
-#         raise HTTPException(status_code=404, detail="Category not found")
-
-#     return positions.all()
-
-
-# @router.get("/position/{pos}", status_code=200, response_model=Positions)
-# async def get_position_by_name(*, session: AsyncSession=Depends(get_session), pos: str):
-#     result = await session.exec(select(Positions).where(Positions.position == pos))
-
-#     if not result:
-#         raise HTTPException(status_code=404, detail="Category not found")
-
-#     return result.one()
-
-
-# @router.get("/position_data/{pos}", status_code=200, response_model=List[Links])
-# async def get_positions_by_category(*, session: AsyncSession=Depends(get_session), pos: str):
-#     links = await session.exec(
-#         select(Links)
-#         .join(Links.position)
-#         .where(Positions.position == pos)
-#     )
-
-#     if not links:
-#         raise HTTPException(status_code=404, detail="Category not found")
-
-#     return links.all()
-
-
-
-# @router.get("/category_by_id/{category}", status_code=200, response_model=Categories)
-# async def get_category_by_id(*, session: AsyncSession=Depends(get_session), category: str):
-#     category = await session.exec(
-#         select(Categories).where(Categories.id == int(category))
-#     )
-
-#     if not category:
-#         raise HTTPException(status_code=404, detail="Category not found")
-
-#     return category.one()
+@router.delete("/{id}", status_code=200)
+async def delete_mem_by_id(*, session: AsyncSession=Depends(get_session), id: int):
+    meme = await session.get(Memes, id)
+    if not meme:
+        raise HTTPException(status_code=404, detail="Meme not found")
+    minio.remove_by_name(bucket="tata", name=meme.name)
+    await session.delete(meme)
+    await session.commit()
+    return {"operation" : "success"}

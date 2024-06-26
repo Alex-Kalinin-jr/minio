@@ -31,7 +31,7 @@ class MinioInstance:
                                             )
             return result
         except S3Error as e:
-            logger.error("mock method error: %s", e)
+            logger.error("put_from_url method error: %s", e)
 
 
     def get_by_name(self, bucket: str, name: str):
@@ -41,3 +41,18 @@ class MinioInstance:
         finally:
             response.close()
             response.release_conn()
+
+
+    def replace_by_name(self, bucket: str, name: str, url: str):
+        try:
+            _ = self.client.remove_object(bucket_name=bucket, object_name=name)
+            _ = self.put_from_url(url, name, bucket)
+        except S3Error as e:
+            logger.error("put_by_name method error: %s", e)
+
+
+    def remove_by_name(self, bucket: str, name: str):
+        try:
+            _ = self.client.remove_object(bucket_name=bucket, object_name=name)
+        except S3Error as e:
+            logger.error("remove_by_name method error: %s", e)
